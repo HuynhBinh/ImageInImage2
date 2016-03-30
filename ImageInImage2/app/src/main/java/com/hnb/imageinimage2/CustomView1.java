@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ComposePathEffect;
@@ -26,76 +27,89 @@ import android.view.WindowManager;
 
 public class CustomView1 extends Activity
 {
-		
+    private GlobalVariable gvar;
 
-	
-	float DisplayWidth = 0;
-	float DisplayHeight = 0;
-	
-	float scaleX = 0;
-	float scaleY = 0;
-	
-	GlobalVariable gvar;
-	
-	DrawView drawView;
- 
-	
-	@Override
-    protected void onCreate(Bundle savedInstanceState) 
+    private DrawView drawView;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        
-        gvar = (GlobalVariable)getApplicationContext();
-        
-        Display display = ((WindowManager) this.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay(); 
-        DisplayWidth = display.getWidth();
-      	DisplayHeight = display.getHeight();
-      	
-      	gvar.displayWidth = DisplayWidth;
-      	gvar.displayHeight = DisplayHeight;
 
-      	
-        drawView = new DrawView(this);
-        
+        gvar = (GlobalVariable) getApplicationContext();
+
+        Display display = ((WindowManager) this.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        float DisplayWidth = display.getWidth();
+        float DisplayHeight = display.getHeight();
+
+        gvar.displayWidth = DisplayWidth;
+        gvar.displayHeight = DisplayHeight;
+
+        drawView = new DrawView(this, DisplayWidth, DisplayHeight);
+
         setContentView(drawView);
-             
-    }
-	
-	@Override
-	protected void onPause() 
-	{	
-		gvar.backGroundBmp = drawView.resizedBmp;
-		
-		Intent i = new Intent(getApplicationContext(), CamaraView.class);
-		startActivity(i);
-		super.onPause();	
-	}
 
+    }
+
+    @Override
+    protected void onPause()
+    {
+        gvar.backGroundBmp = drawView.resizedBmp;
+
+        Intent i = new Intent(getApplicationContext(), CamaraView.class);
+        startActivity(i);
+        super.onPause();
+    }
 
 
     class DrawView extends View implements View.OnTouchListener
     {
+        private Context ctx;
 
-        private Paint bmPaint = new Paint();
-        private Paint drawPaint = new Paint();
-        private Path path = new Path();
+        private Paint defaultPaint = new Paint();
 
         private Canvas cv = null;
-        private Bitmap bm = null;
-        private boolean firstTimeThru = true;
 
-        public Bitmap resizedBmp;
+        private Bitmap bm = null;
+
+        private Bitmap resizedBmp;
+
+        private Bitmap pointerBmp;
+
+        private float screenWidth;
+        private float screenHeight;
+
+        private GlobalVariable gvar;
+
+        private float x;
+        private float y;
+
+        private int pointerBmpWidth;
+        private int pointerBmpHeight;
 
 
         public DrawView(Context context)
         {
             super(context);
+            this.ctx = context;
             init();
         }
 
         public DrawView(Context context, AttributeSet attrs)
         {
             super(context, attrs);
+            this.ctx = context;
+            init();
+        }
+
+        public DrawView(Context context, float screenWidth, float screenHeight)
+        {
+            super(context);
+            this.ctx = context;
+            this.screenWidth = screenWidth;
+            this.screenHeight = screenHeight;
+            this.gvar = (GlobalVariable) getApplicationContext();
             init();
         }
 
@@ -104,56 +118,40 @@ public class CustomView1 extends Activity
         {
             setFocusable(true);
             setFocusableInTouchMode(true);
-            this.setOnTouchListener(this);
+            setOnTouchListener(this);
 
-            bm = gvar.backGroundBmp;
+            this.bm = this.gvar.backGroundBmp;
 
             int width = bm.getWidth();
             int height = bm.getHeight();
 
-            scaleX = DisplayWidth/width;
-            scaleY = DisplayHeight/height;
+            float scaleX = this.screenWidth / width;
+            float scaleY = this.screenHeight / height;
 
             Matrix matrix = new Matrix();
             matrix.postScale(scaleX, scaleY);
 
-            resizedBmp = Bitmap.createBitmap(bm, 0, 0, width , height , matrix , true);
-            
+            this.resizedBmp = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);
+            this.bm.recycle();
+
+            this.pointerBmp = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.icon);
+            this.pointerBmpWidth = pointerBmp.getWidth();
+            this.pointerBmpHeight = pointerBmp.getHeight();
+
+            this.cv = new Canvas(resizedBmp);
+
         }
 
         @Override
         public void onDraw(Canvas canvas)
         {
-            // Set everything up the first time anything gets drawn:
-            if (firstTimeThru)
+
+            if (x != 0 && y != 0)
             {
-                firstTimeThru = false;
-
-                // Just quickly fill the view with a black mask:
-                //canvas.drawColor(Color.BLACK);
-
-                // Create a new bitmap and canvas and fill it with a black mask:
-                //bm = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
-                //cv = new Canvas();
-                //cv.setBitmap(bm);
-                //cv.drawColor(Color.WHITE);
-
-                cv = new Canvas(resizedBmp);
-
-                // Specify that painting will be with fat strokes:
-
-                drawPaint.setPathEffect(new DiscretePathEffect(10f, 8f));
-                drawPaint.setColor(Color.GREEN);
-                drawPaint.setStyle(Paint.Style.FILL_AND_STROKE);
-                drawPaint.setStrokeWidth(canvas.getWidth()/15);
-
-
-                // Specify that painting will clear the pixels instead of paining new ones:
-                //drawPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+                cv.drawBitmap(pointerBmp, x - (this.pointerBmpWidth/2), y - (this.pointerBmpHeight/2), defaultPaint);
             }
 
-            cv.drawPath(path, drawPaint);
-            canvas.drawBitmap(resizedBmp, 0, 0, bmPaint);
+            canvas.drawBitmap(resizedBmp, 0, 0, defaultPaint);
 
             super.onDraw(canvas);
         }
@@ -165,15 +163,12 @@ public class CustomView1 extends Activity
 
             switch (event.getAction())
             {
-
-                // Set the starting position of a new line:
                 case MotionEvent.ACTION_DOWN:
-                    path.moveTo(xPos, yPos);
                     return true;
-
                 // Draw a line to the ending position:
                 case MotionEvent.ACTION_MOVE:
-                    path.lineTo(xPos, yPos);
+                    x = xPos;
+                    y = yPos;
                     break;
 
                 default:
@@ -185,6 +180,6 @@ public class CustomView1 extends Activity
             return true;
         }
     }
-    
+
 
 }
