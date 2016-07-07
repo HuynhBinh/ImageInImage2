@@ -54,7 +54,7 @@ public class CustomView extends Activity
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeJoin(Paint.Join.MITER);
         mPaint.setStrokeCap(Paint.Cap.ROUND);
-        mPaint.setStrokeWidth(45);
+        mPaint.setStrokeWidth(55);
       	
         myView = new MyView(this);
         

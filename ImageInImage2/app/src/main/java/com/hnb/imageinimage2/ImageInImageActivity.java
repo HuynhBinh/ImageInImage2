@@ -125,7 +125,7 @@ public class ImageInImageActivity extends Activity
     		        
     		        //bitmap.recycle();
     		            
-    		        Intent intent = new Intent(getApplicationContext(), CustomView1.class);
+    		        Intent intent = new Intent(getApplicationContext(), CustomView.class);
     		        startActivity(intent);
     		}
     	}
@@ -171,7 +171,7 @@ public class ImageInImageActivity extends Activity
         //Gvar.backGroundBmp = bitmap;
         
             
-        Intent intent = new Intent(getApplicationContext(), CustomView1.class);
+        Intent intent = new Intent(getApplicationContext(), CustomView.class);
         startActivity(intent);
         
     }
